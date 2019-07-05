@@ -13,7 +13,7 @@
     (sp/toxic-to? sp-toxic-to-horse :horses) => true)
 
   (fact "it returns true if animal name is string"
-    (sp/toxic-to? sp-toxic-to-cat "cats") => true)
+    (sp/toxic-to? sp-toxic-to-cat "cats") => true
     (sp/toxic-to? sp-toxic-to-dog "dogs") => true)
 
   (fact "it returns false if animal not in :toxic-to list"
