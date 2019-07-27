@@ -6,7 +6,7 @@
 (def sp-toxic-to-dog {:toxic-to [:dogs]})
 (def sp-toxic-to-horse {:toxic-to [:horses]})
 
-(facts "about `toxic-to?`"
+(facts "about - toxic-to?"
   (fact "it returns true if :toxic-to list contains the arg"
     (sp/toxic-to? sp-toxic-to-cat :cats) => true
     (sp/toxic-to? sp-toxic-to-dog :dogs) => true
@@ -19,3 +19,6 @@
   (fact "it returns false if animal not in :toxic-to list"
     (sp/toxic-to? sp-toxic-to-cat :dogs) => false
     (sp/toxic-to? sp-toxic-to-dog :cats) => false))
+
+(fact "sp/taxons is a list of which taxonomic information a species hold"
+  sp/taxons => [:pop-name :alt-names :sci-name :family])

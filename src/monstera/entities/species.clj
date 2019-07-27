@@ -1,7 +1,7 @@
 (ns monstera.entities.species
   (:gen-class))
 
-(defrecord Species [sci-name pop-names toxic-to])
+(def taxons [:pop-name :alt-names :sci-name :family])
 
 (defn toxic-to?
   "Returns true if the animal is listed in the specie's
