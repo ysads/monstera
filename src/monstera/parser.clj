@@ -5,22 +5,24 @@
             [reaver :as r])
   (:gen-class))
 
-(def urls ["https://www.aspca.org/pet-care/animal-poison-control/cats-plant-list"
-           "https://www.aspca.org/pet-care/animal-poison-control/dogs-plant-list"
-           "https://www.aspca.org/pet-care/animal-poison-control/horse-plant-list"])
+(defn aspca-relative-url
+  [endpoint]
+  (str "https://www.aspca.org" endpoint))
 
-(def offsets (zipmap sp/taxons [0 1 4 7]))
+;; This is not strictly needed, but, since there's already a function to
+;; this, why not?
+(def urls [(aspca-relative-url "/pet-care/animal-poison-control/cats-plant-list")
+           (aspca-relative-url "/pet-care/animal-poison-control/dogs-plant-list")
+           (aspca-relative-url "/pet-care/animal-poison-control/horse-plant-list")])
 
 (defn load-page
-  "Downloads data from a given URL"
   [url]
   (-> (:body (http/get url))
       (slurp)))
 
 (defn extract-species-list
   "Uses reaver library to parse page HTML data and query
-  for the two list of plants, returning them as
-  EDN maps."
+  for the two list of plants, returning them as EDN maps."
   [page]
   (r/extract-from (r/parse page)
                   ".view-all-plants-list .view-content"
@@ -36,13 +38,15 @@
      :toxic (:species (first list))
      :non-toxic (:species (last list))}))
 
+(def offsets (zipmap sp/taxons [0 1 4 7]))
+
 (defn data-offset
   "Given a key, this functions returns the position in which this key
   is located within the array of contents."
   [key]
   (get offsets key))
 
-(defn match-one-or-more
+(defn ^:private match-one-or-more
   "After matching the corresponding value, this function returns the
   plain value by itself, that is, not wrapped by any coll."
   [value]
@@ -50,7 +54,7 @@
                    (map #(str/trim (first %))))]
     (if (= 1 (count match))
       (first match)
-      match)))
+      (vec match))))
 
 (defn edn->taxon
   "Extracts a particular taxon info from species' descriptive EDN."
@@ -67,3 +71,34 @@
       :default
       val)))
 
+(defn ^:private map-default-taxons
+  "Maps each taxon to its value and insert each pair taxon/value
+  into a map."
+  [data]
+  (->> sp/taxons
+       (map (fn [key]
+              (->> (edn->taxon data key)
+                   (vector key))))
+       (into {})))
+
+(defn ^:private with-toxicity
+  [species toxic-to]
+  (if (nil? toxic-to)
+    (assoc species :toxic-to [])
+    (assoc species :toxic-to [toxic-to])))
+
+(defn ^:private with-sources
+  [species raw-species]
+  (let [src-url (:href (:attrs (first (:content raw-species))))]
+    (assoc species :sources [(aspca-relative-url src-url)])))
+
+(defn new-species
+  "Based on a single species data, parsed from page body, creates
+  map containing its taxonomy, toxicity and source informations."
+  ([data]
+   (new-species data nil))
+  ([data toxic-to]
+   (-> data
+       (map-default-taxons)
+       (with-toxicity toxic-to)
+       (with-sources data))))
