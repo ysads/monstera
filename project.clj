@@ -1,8 +1,11 @@
 (defproject monstera "0.0.1-SNAPSHOT"
   :description "A survival guide for people in love with plants and pets"
-  :dependencies [[aleph "0.4.6"]
-                 [org.clojure/clojure "1.7.0"]
+  :dependencies [[clj-http "3.10.0"]
+                 [org.clojure/clojure "1.9.0"]
+                 [org.clojure/spec.alpha "0.2.176"]
+                 [org.clojure/math.combinatorics "0.1.5"]
                  [reaver "0.1.2"]]
-  :profiles {:dev {:dependencies [[midje "1.7.0"]]
+  :profiles {:dev {:dependencies [[midje "1.9.8"]
+                                  [nubank/matcher-combinators "1.0.1"]]
                    :plugins [[lein-midje "3.2.1"]]}
              :midje {}})
