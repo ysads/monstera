@@ -7,5 +7,6 @@
                  [reaver "0.1.2"]]
   :profiles {:dev {:dependencies [[midje "1.9.8"]
                                   [nubank/matcher-combinators "1.0.1"]]
-                   :plugins [[lein-midje "3.2.1"]]}
+                   :plugins [[lein-midje "3.2.1"]
+                             [lein-cloverage "1.0.9"]]}
              :midje {}})
