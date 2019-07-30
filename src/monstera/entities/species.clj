@@ -1,5 +1,10 @@
 (ns monstera.entities.species
+  (:require [clojure.spec.alpha :as spec])
   (:gen-class))
+
+(spec/def ::species
+          (spec/keys :req-un [::pop-name ::alt-names ::sci-name ::family]
+                     :opt-un [::sources ::toxic-to]))
 
 (def taxons [:pop-name :alt-names :sci-name :family])
 
@@ -8,4 +13,4 @@
   :toxic-to list"
   [species animal]
   (-> (:toxic-to species)
-      (.contains (keyword animal))))
+      (.contains (name animal))))
