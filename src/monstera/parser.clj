@@ -11,16 +11,16 @@
 
 ;; This is not strictly needed, but, since there's already a function to
 ;; this, why not?
-(def urls [(aspca-relative-url "/pet-care/animal-poison-control/cats-plant-list")
-           (aspca-relative-url "/pet-care/animal-poison-control/dogs-plant-list")
-           (aspca-relative-url "/pet-care/animal-poison-control/horse-plant-list")])
+(def animals {:cat   (aspca-relative-url "/pet-care/animal-poison-control/cats-plant-list")
+              :dog   (aspca-relative-url "/pet-care/animal-poison-control/dogs-plant-list")
+              :horse (aspca-relative-url "/pet-care/animal-poison-control/horse-plant-list")})
 
 (defn load-page
   [url]
   (-> (:body (http/get url))
       (slurp)))
 
-(defn extract-species-list
+(defn extract-species
   "Uses reaver library to parse page HTML data and query
   for the two list of plants, returning them as EDN maps."
   [page]
@@ -33,7 +33,7 @@
   "Given the destructured webpage body data, this function returns
   a list with species nodes classified by `toxic` and `non-toxic`."
   [animal page]
-  (let [list (extract-species-list page)]
+  (let [list (extract-species page)]
     {:animal animal
      :toxic (:species (first list))
      :non-toxic (:species (last list))}))
@@ -102,3 +102,17 @@
        (map-default-taxons)
        (with-toxicity toxic-to)
        (with-sources data))))
+
+(defn ^:private parse-toxic-and-non-toxic-species
+  [dossier]
+  (let [animal (:animal dossier)]
+    (into (map #(new-species % animal) (:toxic dossier))
+          (map #(new-species %) (:non-toxic dossier)))))
+
+(defn parse-species
+  "Scraps species data from a remote webpage and parse into
+  a coll of species maps."
+  [url]
+  (->> (load-page url)
+       (page->species-list "cat")
+       (parse-toxic-and-non-toxic-species)))

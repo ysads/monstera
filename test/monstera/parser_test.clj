@@ -1,5 +1,7 @@
 (ns monstera.parser-test
-  (:require [midje.sweet :refer :all]
+  (:require [clojure.spec.alpha :as spec]
+            [midje.sweet :refer :all]
+            [monstera.entities.species :as sp]
             [monstera.parser :as parser]
             [matcher-combinators.midje :refer [match]]
             [matcher-combinators.matchers :as m]))
@@ -11,10 +13,10 @@
   (parser/aspca-relative-url "/abc/1") => "https://www.aspca.org/abc/1"
   (parser/aspca-relative-url "/pet-control?x=1") => "https://www.aspca.org/pet-control?x=1")
 
-(fact "parser/urls equals to ASPCA links"
-  parser/urls => ["https://www.aspca.org/pet-care/animal-poison-control/cats-plant-list"
-                  "https://www.aspca.org/pet-care/animal-poison-control/dogs-plant-list"
-                  "https://www.aspca.org/pet-care/animal-poison-control/horse-plant-list"])
+(fact "parser/animals maps each animal to its ASPCA url"
+  parser/animals => {:cat   "https://www.aspca.org/pet-care/animal-poison-control/cats-plant-list"
+                     :dog   "https://www.aspca.org/pet-care/animal-poison-control/dogs-plant-list"
+                     :horse "https://www.aspca.org/pet-care/animal-poison-control/horse-plant-list"})
 
 (fact "parser/page->species-list returns two list of species nodes"
   (parser/page->species-list "cat" page) => (just {:animal "cat"
@@ -61,3 +63,18 @@
                                               :family    "Agavaceae"
                                               :toxic-to  []
                                               :sources   ["https://www.aspca.org/pet-care/animal-poison-control/toxic-and-non-toxic-plants/yucca"]}))
+
+(defn valid-species?
+  [spp]
+  (spec/valid? :monstera.entities.species/species spp))
+
+(def toxic-to-cat?
+  (fn [spp]
+    (.contains (:toxic-to spp) "cat")))
+
+(fact "parser/parse-species returns a coll of maps, each a single species"
+  (let [species (parser/parse-species ..url..)]
+    species => (has every? valid-species?)
+    (count (filter toxic-to-cat? species)) => 417
+    (count (filter (complement toxic-to-cat?) species)) => 569)
+  (against-background (parser/load-page ..url..) => page))
