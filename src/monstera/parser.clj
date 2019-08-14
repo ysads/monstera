@@ -1,6 +1,7 @@
 (ns monstera.parser
   (:require [clj-http.client :as http]
             [clojure.string :as str]
+            [inflections.core :as inflections]
             [monstera.entities.species :as sp]
             [reaver :as r])
   (:gen-class))
@@ -11,9 +12,9 @@
 
 ;; This is not strictly needed, but, since there's already a function to
 ;; this, why not?
-(def animals {:cat   (aspca-relative-url "/pet-care/animal-poison-control/cats-plant-list")
-              :dog   (aspca-relative-url "/pet-care/animal-poison-control/dogs-plant-list")
-              :horse (aspca-relative-url "/pet-care/animal-poison-control/horse-plant-list")})
+(def urls [(aspca-relative-url "/pet-care/animal-poison-control/cats-plant-list")
+           (aspca-relative-url "/pet-care/animal-poison-control/dogs-plant-list")
+           (aspca-relative-url "/pet-care/animal-poison-control/horse-plant-list")])
 
 (defn load-page
   [url]
@@ -29,7 +30,7 @@
                   [:species]
                   ".field-content" r/edn))
 
-(defn page->species-list
+(defn page->dossier
   "Given the destructured webpage body data, this function returns
   a list with species nodes classified by `toxic` and `non-toxic`."
   [animal page]
@@ -37,6 +38,15 @@
     {:animal animal
      :toxic (:species (first list))
      :non-toxic (:species (last list))}))
+
+(defn url->animal
+  "Identifies which animal a given url refers to."
+  [url]
+  (let [tokens (re-seq #"(/)\w+" url)]
+    (-> (last tokens)
+        (first)
+        (str/replace "/" "")
+        (inflections/plural))))
 
 (def offsets (zipmap sp/taxons [0 1 4 7]))
 
@@ -56,29 +66,26 @@
       (first match)
       (vec match))))
 
+(defn ^:private parse-content
+  [content]
+  (-> (cond
+        (string? content) (match-one-or-more content)
+        (map? content)    (first (:content content))
+        :default          content)))
+
 (defn edn->taxon
   "Extracts a particular taxon info from species' descriptive EDN."
   [data key]
-  (let [offset (data-offset key)
-        val (nth (:content data) offset)]
-    (cond
-      (map? val)
-      (first (:content val))
-
-      (string? val)
-      (match-one-or-more val)
-
-      :default
-      val)))
+  (let [offset  (data-offset key)
+        content (nth (:content data) offset)]
+    (vector key (parse-content content))))
 
 (defn ^:private map-default-taxons
   "Maps each taxon to its value and insert each pair taxon/value
   into a map."
   [data]
   (->> sp/taxons
-       (map (fn [key]
-              (->> (edn->taxon data key)
-                   (vector key))))
+       (map #(edn->taxon data %))
        (into {})))
 
 (defn ^:private with-toxicity
@@ -113,6 +120,8 @@
   "Scraps species data from a remote webpage and parse into
   a coll of species maps."
   [url]
-  (->> (load-page url)
-       (page->species-list "cat")
-       (parse-toxic-and-non-toxic-species)))
+  (let [animal (url->animal url)]
+    (->> (load-page url)
+         (page->dossier animal)
+         (parse-toxic-and-non-toxic-species))))
+  
