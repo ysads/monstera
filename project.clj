@@ -1,6 +1,8 @@
 (defproject monstera "0.0.1-SNAPSHOT"
   :description "A survival guide for people in love with plants and pets"
   :dependencies [[clj-http "3.10.0"]
+                 [com.novemberain/monger "3.1.0"]
+                 [com.stuartsierra/component "0.4.0"]
                  [inflections "0.13.2"]
                  [org.clojure/clojure "1.9.0"]
                  [org.clojure/spec.alpha "0.2.176"]
